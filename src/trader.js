@@ -8,6 +8,7 @@ const Binance = require("node-binance-api")
 const env = require("./env")
 
 const bva_key = env.BVA_API_KEY
+const tradeShortEnabled = env.TRADE_SHORT_ENABLED
 
 //////////////////////////////////////////////////////////////////////////////////
 //         VARIABLES TO KEEP TRACK OF BOT POSITIONS AND ACTIVITY
@@ -29,55 +30,60 @@ let minimums = {}
 
 const app = express()
 app.get("/", (req, res) => res.send(""))
-app.listen(env.TRADER_PORT, () => console.log("NBT auto trader running.".grey))
+app.listen(env.TRADER_PORT, () => {
+    console.log("NBT auto trader running.".grey)
+    if (!tradeShortEnabled) {
+        console.log("Trading short disabled.".grey)
+    }
+})
 
 const notifier = require('./notifiers')(trading_pairs);
 
 //////////////////////////////////////////////////////////////////////////////////
 
 const margin_pairs = [
-    "BNBBTC", 
-    "TRXBTC", 
-    "XRPBTC", 
-    "ETHBTC", 
-    "EOSBTC", 
-    "LINKBTC", 
-    "ONTBTC", 
-    "ADABTC", 
-    "ETCBTC", 
-    "LTCBTC", 
-    "XLMBTC", 
-    "XMRBTC", 
-    "NEOBTC", 
-    "ATOMBTC", 
-    "DASHBTC", 
-    "ZECBTC", 
-    "MATICBTC", 
-    "BATBTC", 
-    "IOSTBTC", 
-    "VETBTC", 
-    "QTUMBTC", 
-    "IOTABTC", 
-    "XTZBTC", 
-    "BCHBTC", 
-    "RVNBTC", 
-    "ZILBTC", 
-    "DOTBTC", 
-    "ALGOBTC", 
-    "THETABTC", 
-    "COMPBTC", 
-    "OMGBTC", 
-    "DOGEBTC", 
-    "WAVESBTC", 
-    "SNXBTC", 
-    "YFIBTC", 
-    "CRVBTC", 
-    "SUSHIBTC", 
-    "UNIBTC", 
-    "YFIIBTC", 
-    "NEARBTC", 
-    "FILBTC", 
-    "AAVEBTC", 
+    "BNBBTC",
+    "TRXBTC",
+    "XRPBTC",
+    "ETHBTC",
+    "EOSBTC",
+    "LINKBTC",
+    "ONTBTC",
+    "ADABTC",
+    "ETCBTC",
+    "LTCBTC",
+    "XLMBTC",
+    "XMRBTC",
+    "NEOBTC",
+    "ATOMBTC",
+    "DASHBTC",
+    "ZECBTC",
+    "MATICBTC",
+    "BATBTC",
+    "IOSTBTC",
+    "VETBTC",
+    "QTUMBTC",
+    "IOTABTC",
+    "XTZBTC",
+    "BCHBTC",
+    "RVNBTC",
+    "ZILBTC",
+    "DOTBTC",
+    "ALGOBTC",
+    "THETABTC",
+    "COMPBTC",
+    "OMGBTC",
+    "DOGEBTC",
+    "WAVESBTC",
+    "SNXBTC",
+    "YFIBTC",
+    "CRVBTC",
+    "SUSHIBTC",
+    "UNIBTC",
+    "YFIIBTC",
+    "NEARBTC",
+    "FILBTC",
+    "AAVEBTC",
     "GRTBTC"
 ]
 
@@ -232,6 +238,7 @@ socket.on("buy_signal", async (signal) => {
             }
             //////
         } else if (
+            tradeShortEnabled &&
             trading_types[signal.pair + signal.stratid] === "SHORT" &&
             trading_qty[signal.pair + signal.stratid] &&
             !signal.new &&
@@ -354,7 +361,7 @@ socket.on("sell_signal", async (signal) => {
         return o.stratid == signal.stratid
     })
     if (tresult > -1) {
-        if (!trading_pairs[signal.pair + signal.stratid] && signal.new) {
+        if (tradeShortEnabled && !trading_pairs[signal.pair + signal.stratid] && signal.new) {
             console.log(
                 colors.grey(
                     "SELL_SIGNAL :: ENTER SHORT TRADE ::",
@@ -365,7 +372,7 @@ socket.on("sell_signal", async (signal) => {
             )
             //notify
             notifier.notifyEnterShortSignal(signal)
-            
+
             console.log(
                 signal.pair,
                 " ===> SELL",
@@ -685,7 +692,7 @@ socket.on("close_traded_signal", async (signal) => {
                                 delete trading_qty[signal.pair + signal.stratid]
                                 delete open_trades[signal.pair + signal.stratid]
                                 //////
-                                
+
                                 console.log("SUCESS44444", alt, Number(qty))
                                 socket.emit(
                                     "traded_sell_signal",
